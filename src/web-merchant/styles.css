@@ -1067,3 +1067,101 @@ table.tbl {
   color: var(--text-secondary);
   font-size: 15px;
 }
+
+/* ---------- Merchant dashboard ---------- */
+.merchant-dashboard {
+  gap: var(--s-5);
+}
+
+.merchant-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--s-4);
+}
+
+.merchant-stat {
+  border-radius: 8px;
+  box-shadow: var(--shadow-sm);
+}
+
+.merchant-dashboard-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(320px, 0.85fr);
+  gap: var(--s-4);
+  align-items: stretch;
+}
+
+.merchant-dashboard-grid.lower {
+  grid-template-columns: minmax(0, 1.45fr) minmax(320px, 0.9fr);
+  align-items: start;
+}
+
+.sales-chart {
+  height: 180px;
+  display: flex;
+  align-items: end;
+}
+
+.sales-chart .bar-row {
+  width: 100%;
+  height: 150px;
+  justify-content: space-around;
+  gap: var(--s-5);
+}
+
+.sales-chart .bar-row .bar {
+  width: 42px;
+  background: #2FA084;
+  border-radius: 6px 6px 0 0;
+}
+
+.sales-chart .bar-row .bar.hi {
+  background: var(--c-secondary);
+}
+
+.settlement-summary {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+}
+
+.settlement-summary > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--s-4);
+  border-radius: 8px;
+  background: var(--bg-subtle);
+}
+
+.settlement-summary span {
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.settlement-summary strong {
+  font-size: 18px;
+  font-variant-numeric: tabular-nums;
+}
+
+.dashboard-task {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3);
+  padding: var(--s-4);
+  border-radius: 8px;
+  background: var(--bg-subtle);
+}
+
+.dashboard-task strong {
+  display: block;
+  margin-bottom: 2px;
+  font-size: 13px;
+}
+
+.dashboard-task span {
+  display: block;
+  color: var(--text-tertiary);
+  font-size: 12px;
+}
