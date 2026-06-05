@@ -206,4 +206,4 @@ const Dashboard = ({ onOpenMerchant }) => {
   );
 };
 
-window.Dashboard = Dashboard;
+Object.assign(window, { Dashboard, StatCard, Sparkbars });
