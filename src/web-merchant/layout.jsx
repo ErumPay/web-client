@@ -2,16 +2,14 @@
 
 const NAV_MAIN = [
   { id: "dashboard",    label: "대시보드",        icon: "Dashboard" },
-  { id: "merchants",    label: "가맹점 관리",      icon: "Store" },
-  { id: "transactions", label: "결제관리",         icon: "Card" },
-  { id: "settlements",  label: "정산관리",         icon: "Calc" },
-  { id: "benefits",     label: "카드 혜택/수집 관리", icon: "Gift" },
+  { id: "sales",        label: "매출 관리",        icon: "Won" },
+  { id: "transactions", label: "거래 관리",        icon: "Card" },
+  { id: "settlements",  label: "정산 관리",        icon: "Calc" },
   { id: "notices",      label: "알림/공지 관리",   icon: "Speaker" },
 ];
-const NAV_SYS = [
-  { id: "audit",  label: "감사 로그",   icon: "Shield" },
-  { id: "admins", label: "관리자 관리", icon: "Users" },
-  { id: "design", label: "디자인 시스템", icon: "Eye" },
+const NAV_ACCOUNT = [
+  { id: "merchant-info", label: "내 가맹점 관리", icon: "Store" },
+  { id: "support",       label: "고객센터",       icon: "Users" },
 ];
 
 const Sidebar = ({ current, onNav, collapsed }) => {
@@ -37,8 +35,8 @@ const Sidebar = ({ current, onNav, collapsed }) => {
       </div>
       <nav className="sidebar-nav">
         {NAV_MAIN.map(item)}
-        <div className="nav-section">SYSTEM</div>
-        {NAV_SYS.map(item)}
+        <div className="nav-section">ACCOUNT</div>
+        {NAV_ACCOUNT.map(item)}
       </nav>
       <div className="sidebar-footer">
         <button className="nav-item" onClick={() => onNav("login")}>
@@ -76,4 +74,4 @@ const Header = ({ onToggleSidebar, crumbs, onBell, onUser, unread }) => (
   </header>
 );
 
-Object.assign(window, { Sidebar, Header, NAV_MAIN, NAV_SYS });
+Object.assign(window, { Sidebar, Header, NAV_MAIN, NAV_ACCOUNT });

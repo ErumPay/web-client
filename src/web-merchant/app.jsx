@@ -1,15 +1,13 @@
 /* Main App */
 
 const ROUTES = {
-  dashboard:    { title: "대시보드",          crumbs: ["대시보드"] },
-  merchants:    { title: "가맹점 관리",        crumbs: ["가맹점 관리"] },
-  transactions: { title: "결제관리",           crumbs: ["결제관리"] },
-  settlements:  { title: "정산관리",           crumbs: ["정산관리"] },
-  benefits:     { title: "카드 혜택/수집 관리", crumbs: ["카드 혜택/수집 관리"] },
-  notices:      { title: "알림/공지 관리",     crumbs: ["알림/공지 관리"] },
-  audit:        { title: "감사 로그",          crumbs: ["SYSTEM", "감사 로그"] },
-  admins:       { title: "관리자 관리",        crumbs: ["SYSTEM", "관리자 관리"] },
-  design:       { title: "디자인 시스템",      crumbs: ["SYSTEM", "디자인 시스템"] },
+  dashboard:       { title: "대시보드",        crumbs: ["대시보드"] },
+  sales:           { title: "매출 관리",       crumbs: ["매출 관리"] },
+  transactions:    { title: "거래 관리",       crumbs: ["거래 관리"] },
+  settlements:     { title: "정산 관리",       crumbs: ["정산 관리"] },
+  notices:         { title: "알림/공지 관리",  crumbs: ["알림/공지 관리"] },
+  "merchant-info": { title: "내 가맹점 관리",  crumbs: ["ACCOUNT", "내 가맹점 관리"] },
+  support:         { title: "고객센터",        crumbs: ["ACCOUNT", "고객센터"] },
 };
 
 const App = () => {
@@ -51,18 +49,16 @@ const App = () => {
           onToggleSidebar={() => setCollapsed(!collapsed)}
           crumbs={route.crumbs}
           onBell={() => nav("notices")}
-          onUser={() => nav("admins")}
+          onUser={() => nav("merchant-info")}
           unread={3}
         />
         {page === "dashboard"    && <Dashboard onOpenMerchant={setMerchant}/>}
-        {page === "merchants"    && <Merchants onOpen={setMerchant}/>}
+        {page === "sales"        && <Sales/>}
         {page === "transactions" && <Transactions onOpen={setTx}/>}
         {page === "settlements"  && <Settlements/>}
-        {page === "benefits"     && <Benefits/>}
         {page === "notices"      && <Notices/>}
-        {page === "audit"        && <AuditLog/>}
-        {page === "admins"       && <Admins/>}
-        {page === "design"       && <DesignSystem/>}
+        {page === "merchant-info" && <MerchantInfo/>}
+        {page === "support"      && <Support/>}
         <div className="page-footer">© 2024 ErumPay. All rights reserved.</div>
       </main>
       {merchant && <MerchantDrawer merchant={merchant} onClose={() => setMerchant(null)}/>}

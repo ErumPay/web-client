@@ -332,6 +332,58 @@ const Benefits = () => (
   </div>
 );
 
+/* ============= Support ============= */
+const Support = () => (
+  <div className="page">
+    <div className="row between">
+      <div className="page-header">
+        <h1 className="page-title">고객센터</h1>
+        <p className="page-desc">가맹점 운영 문의와 처리 현황을 확인합니다.</p>
+      </div>
+      <Button kind="primary"><Icons.Plus size={14}/> 문의 등록</Button>
+    </div>
+
+    <div className="stat-grid" style={{gridTemplateColumns: "repeat(3, 1fr)"}}>
+      <StatCard label="접수된 문의" value="8" unit="건" icon="Speaker" accent="#1F6F5F"/>
+      <StatCard label="처리 중" value="3" unit="건" icon="Warning" accent="#FF662F"/>
+      <StatCard label="처리 완료" value="21" unit="건" icon="CircleCheck" accent="#67B173"/>
+    </div>
+
+    <Card flush>
+      <div className="table-wrap">
+        <table className="tbl">
+          <thead>
+            <tr>
+              <th style={{width: 120}}>접수번호</th>
+              <th>제목</th>
+              <th style={{width: 110}}>유형</th>
+              <th className="center" style={{width: 90}}>상태</th>
+              <th style={{width: 130}}>접수일</th>
+              <th style={{width: 80}}></th>
+            </tr>
+          </thead>
+          <tbody>
+            {[
+              ["Q24051401", "정산 예정금 확인 요청", "정산", "pending", "2024-05-14"],
+              ["Q24051308", "단말기 영수증 재출력 문의", "단말기", "approved", "2024-05-13"],
+              ["Q24051203", "거래 취소 처리 방법 문의", "거래", "approved", "2024-05-12"],
+            ].map(q => (
+              <tr key={q[0]}>
+                <td className="mono num">{q[0]}</td>
+                <td style={{fontWeight: 600}}>{q[1]}</td>
+                <td>{q[2]}</td>
+                <td className="center"><StatusTag status={q[3]}/></td>
+                <td className="num t-tertiary">{q[4]}</td>
+                <td><Button kind="text" size="sm">상세 <Icons.Right size={12}/></Button></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </Card>
+  </div>
+);
+
 /* ============= Design System ============= */
 const DesignSystem = () => {
   const palette = [
@@ -520,4 +572,4 @@ const Login = ({ onLogin }) => {
   );
 };
 
-Object.assign(window, { Notices, AuditLog, Admins, Benefits, DesignSystem, Login });
+Object.assign(window, { Notices, AuditLog, Admins, Benefits, Support, DesignSystem, Login });

@@ -195,4 +195,4 @@ const MerchantDrawer = ({ merchant, onClose }) => {
   );
 };
 
-Object.assign(window, { Merchants, MerchantDrawer });
+Object.assign(window, { MERCHANTS, Merchants, MerchantDrawer });
