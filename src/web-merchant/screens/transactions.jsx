@@ -17,7 +17,7 @@ const Transactions = ({ onOpen }) => {
   const [dateTo, setDateTo] = React.useState("2024-05-14");
   const [page, setPage] = React.useState(1);
 
-  const rows = TRANSACTIONS.map(enhanceTransaction);
+  const rows = window.MerchantApi.getTransactions().map(enhanceTransaction);
 
   const filtered = rows.filter(t => {
     const tabMatched =

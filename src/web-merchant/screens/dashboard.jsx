@@ -34,15 +34,17 @@ const Sparkbars = ({ data }) => (
 
 const Dashboard = () => {
   const [period, setPeriod] = React.useState("today");
+  const dashboard = window.MerchantApi.getDashboard();
+  const transactions = dashboard.transactions;
 
-  const paidTransactions = TRANSACTIONS.filter(t => t.status === "paid");
-  const canceledTransactions = TRANSACTIONS.filter(t => t.status === "failed" || t.status === "refunded" || t.status === "canceled");
+  const paidTransactions = transactions.filter(t => t.status === "paid");
+  const canceledTransactions = transactions.filter(t => t.status === "failed" || t.status === "refunded" || t.status === "canceled");
   const todayAmount = paidTransactions.reduce((sum, t) => sum + t.amount, 0);
   const cancelAmount = canceledTransactions.reduce((sum, t) => sum + t.amount, 0);
   const expectedSettlement = Math.round(todayAmount * 0.975);
-  const cancelRate = ((canceledTransactions.length / TRANSACTIONS.length) * 100).toFixed(1);
+  const cancelRate = ((canceledTransactions.length / transactions.length) * 100).toFixed(1);
 
-  const recentRows = TRANSACTIONS.slice(0, 7);
+  const recentRows = transactions.slice(0, 7);
 
   return (
     <div className="page merchant-dashboard">
@@ -71,7 +73,7 @@ const Dashboard = () => {
       <div className="merchant-dashboard-grid">
         <Card title="매출 추이" action={<span className="text t-tertiary">최근 7일</span>}>
           <div className="sales-chart">
-            <Sparkbars data={[0.42, 0.58, 0.52, 0.68, 0.61, 0.76, 0.84]}/>
+            <Sparkbars data={dashboard.salesTrend}/>
           </div>
           <div className="row between" style={{marginTop: 12, fontSize: 12, color: "var(--text-tertiary)"}}>
             <span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span>토</span><span>오늘</span>
@@ -82,7 +84,7 @@ const Dashboard = () => {
           <div className="settlement-summary">
             <div>
               <span>다음 정산일</span>
-              <strong>2024-05-20</strong>
+              <strong>{dashboard.nextSettlementDate}</strong>
             </div>
             <div>
               <span>수수료</span>
@@ -132,11 +134,7 @@ const Dashboard = () => {
 
         <Card title="처리 필요 항목">
           <div className="col" style={{gap: 8}}>
-            {[
-              ["정산 계좌 확인", "정산 정보 변경 요청이 접수되었습니다.", "pending"],
-              ["영수증 재발행 문의", "거래번호 TX2024051400120", "approved"],
-              ["공지 확인", "단말기 보안 업데이트 안내", "waiting"],
-            ].map(([title, desc, status]) => (
+            {dashboard.tasks.map(([title, desc, status]) => (
               <div key={title} className="dashboard-task">
                 <div>
                   <strong>{title}</strong>

@@ -1,15 +1,5 @@
 /* Merchant sales management */
 
-const SALES_DAILY = [
-  { date: "2024-05-14", count: 128, amount: 8927000, cancelCount: 3, cancelAmount: 186000 },
-  { date: "2024-05-13", count: 112, amount: 7652000, cancelCount: 2, cancelAmount: 94000 },
-  { date: "2024-05-12", count: 94,  amount: 6428000, cancelCount: 1, cancelAmount: 38000 },
-  { date: "2024-05-11", count: 136, amount: 9437000, cancelCount: 4, cancelAmount: 215000 },
-  { date: "2024-05-10", count: 121, amount: 8036000, cancelCount: 2, cancelAmount: 118000 },
-  { date: "2024-05-09", count: 87,  amount: 5834000, cancelCount: 1, cancelAmount: 42000 },
-  { date: "2024-05-08", count: 76,  amount: 4921000, cancelCount: 0, cancelAmount: 0 },
-];
-
 const Sales = () => {
   const [period, setPeriod] = React.useState("week");
   const [status, setStatus] = React.useState("all");
@@ -17,7 +7,8 @@ const Sales = () => {
   const [query, setQuery] = React.useState("");
   const [page, setPage] = React.useState(1);
 
-  const rows = SALES_DAILY.filter(r => !query || r.date.includes(query));
+  const salesDaily = window.MerchantApi.getSalesDaily();
+  const rows = salesDaily.filter(r => !query || r.date.includes(query));
 
   const totals = rows.reduce((acc, r) => {
     acc.count += r.count;

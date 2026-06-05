@@ -1,15 +1,5 @@
 /* Merchant settlements */
 
-const MERCHANT_SETTLEMENTS = [
-  { id: "STL-202405-W20", period: "2024-05-13 ~ 2024-05-19", payDate: "2024-05-20", gross: 12450000, canceled: 385000, fee: 301625, status: "pending", account: "신한은행 110-***-******" },
-  { id: "STL-202405-W19", period: "2024-05-06 ~ 2024-05-12", payDate: "2024-05-13", gross: 10872000, canceled: 228000, fee: 261850, status: "paid", account: "신한은행 110-***-******" },
-  { id: "STL-202405-W18", period: "2024-04-29 ~ 2024-05-05", payDate: "2024-05-07", gross: 9840000, canceled: 142000, fee: 246950, status: "paid", account: "신한은행 110-***-******" },
-  { id: "STL-202404-W17", period: "2024-04-22 ~ 2024-04-28", payDate: "2024-04-29", gross: 8934000, canceled: 188000, fee: 217650, status: "paid", account: "신한은행 110-***-******" },
-  { id: "STL-202404-W16", period: "2024-04-15 ~ 2024-04-21", payDate: "2024-04-22", gross: 7620000, canceled: 94000, fee: 190650, status: "paid", account: "신한은행 110-***-******" },
-  { id: "STL-202404-W15", period: "2024-04-08 ~ 2024-04-14", payDate: "2024-04-15", gross: 7115000, canceled: 0, fee: 177875, status: "paid", account: "신한은행 110-***-******" },
-  { id: "STL-202404-W14", period: "2024-04-01 ~ 2024-04-07", payDate: "2024-04-08", gross: 6582000, canceled: 76000, fee: 163950, status: "paid", account: "신한은행 110-***-******" },
-];
-
 const settlementNet = (s) => s.gross - s.canceled - s.fee;
 
 const Settlements = () => {
@@ -19,7 +9,8 @@ const Settlements = () => {
   const [page, setPage] = React.useState(1);
   const [selected, setSelected] = React.useState(null);
 
-  const filtered = MERCHANT_SETTLEMENTS.filter(s =>
+  const settlements = window.MerchantApi.getSettlements();
+  const filtered = settlements.filter(s =>
     (status === "all" || s.status === status) &&
     (!query || s.id.includes(query) || s.period.includes(query)) &&
     (period === "all" || s.id.includes(period))
