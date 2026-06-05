@@ -2,17 +2,19 @@
 
 const NAV_MAIN = [
   { id: "dashboard",    label: "대시보드",        icon: "Dashboard" },
-  { id: "sales",        label: "매출 관리",        icon: "Won" },
-  { id: "transactions", label: "거래 관리",        icon: "Card" },
-  { id: "settlements",  label: "정산 관리",        icon: "Calc" },
-  { id: "notices",      label: "알림/공지 관리",   icon: "Speaker" },
+  { id: "sales",        label: "매출관리",        icon: "Up" },
+  { id: "transactions", label: "거래관리",        icon: "Card" },
+  { id: "settlements",  label: "정산관리",        icon: "Won" },
 ];
-const NAV_ACCOUNT = [
-  { id: "merchant-info", label: "내 가맹점 관리", icon: "Store" },
-  { id: "support",       label: "고객센터",       icon: "Users" },
+const NAV_STORE = [
+  { id: "store-info",      label: "가게 정보",   icon: "Store" },
+  { id: "business-info",   label: "사업자 정보", icon: "Doc" },
+  { id: "settlement-info", label: "정산 정보",   icon: "Wallet" },
 ];
 
 const Sidebar = ({ current, onNav, collapsed }) => {
+  const isStoreActive = NAV_STORE.some(it => it.id === current);
+
   const item = (it) => {
     const Ico = Icons[it.icon];
     return (
@@ -27,16 +29,42 @@ const Sidebar = ({ current, onNav, collapsed }) => {
       </button>
     );
   };
+
+  const childItem = (it) => {
+    const Ico = Icons[it.icon];
+    return (
+      <button
+        key={it.id}
+        className={`nav-sub-item ${current === it.id ? "active" : ""}`}
+        onClick={() => onNav(it.id)}
+        title={it.label}
+      >
+        <span className="nav-icon"><Ico size={16}/></span>
+        <span className="nav-label">{it.label}</span>
+      </button>
+    );
+  };
+
   return (
     <aside className={`sidebar ${collapsed ? "collapsed" : ""}`}>
       <div className="sidebar-brand">
-        <div className="logo-mark">E</div>
-        <div className="brand-name">ErumPay</div>
+        <img className="brand-ci" src="/assets/erumpay-ci.png" alt="ErumPay" />
+        <button className="sidebar-menu-btn" title="메뉴 접기">
+          <Icons.Menu size={20}/>
+        </button>
       </div>
       <nav className="sidebar-nav">
         {NAV_MAIN.map(item)}
-        <div className="nav-section">ACCOUNT</div>
-        {NAV_ACCOUNT.map(item)}
+        <div className={`nav-group ${isStoreActive ? "active" : ""}`}>
+          <button className="nav-item nav-parent" onClick={() => onNav("store-info")} title="내 가게 정보 관리">
+            <span className="nav-icon"><Icons.Store size={18}/></span>
+            <span className="nav-label">내 가게 정보 관리</span>
+            <span className="nav-caret"><Icons.Down size={14}/></span>
+          </button>
+          <div className="nav-sub-list">
+            {NAV_STORE.map(childItem)}
+          </div>
+        </div>
       </nav>
       <div className="sidebar-footer">
         <button className="nav-item" onClick={() => onNav("login")}>
@@ -74,4 +102,4 @@ const Header = ({ onToggleSidebar, crumbs, onBell, onUser, unread }) => (
   </header>
 );
 
-Object.assign(window, { Sidebar, Header, NAV_MAIN, NAV_ACCOUNT });
+Object.assign(window, { Sidebar, Header, NAV_MAIN, NAV_STORE });

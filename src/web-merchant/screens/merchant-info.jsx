@@ -1,15 +1,19 @@
 /* Merchant profile management */
 
-const MerchantInfo = () => {
-  const [tab, setTab] = React.useState("business");
+const MerchantInfo = ({ initialTab = "store" }) => {
+  const [tab, setTab] = React.useState(initialTab);
   const merchant = MERCHANTS[0];
+
+  React.useEffect(() => {
+    setTab(initialTab);
+  }, [initialTab]);
 
   return (
     <div className="page">
       <div className="row between">
         <div className="page-header">
           <h1 className="page-title">내 가맹점 관리</h1>
-          <p className="page-desc">사업자 정보, 매장 정보, 정산 계좌와 운영 상태를 관리합니다.</p>
+          <p className="page-desc">가게 정보, 사업자 정보, 정산 정보를 관리합니다.</p>
         </div>
         <Button kind="primary"><Icons.Edit size={14}/> 정보 수정 요청</Button>
       </div>
@@ -18,7 +22,7 @@ const MerchantInfo = () => {
         <div style={{padding: "var(--s-4) var(--s-5)", borderBottom: "1px solid var(--border)"}}>
           <Tabs value={tab} onChange={setTab} items={[
             {value: "business", label: "사업자 정보"},
-            {value: "store", label: "매장 정보"},
+            {value: "store", label: "가게 정보"},
             {value: "settlement", label: "정산 계좌"},
             {value: "status", label: "운영 상태"},
           ]}/>
