@@ -677,6 +677,130 @@ table.tbl {
 }
 .info-grid .val { color: var(--text-primary); }
 
+/* Merchant info pages */
+.merchant-info-layout {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+}
+.info-list {
+  border-top: 1px solid var(--border);
+}
+.info-list-row {
+  display: grid;
+  grid-template-columns: 132px 1fr;
+  min-height: 44px;
+  border-bottom: 1px solid var(--border);
+}
+.info-list-row span,
+.info-list-row strong {
+  display: flex;
+  align-items: center;
+  padding: var(--s-3) var(--s-4);
+  font-size: 13px;
+}
+.info-list-row span {
+  background: var(--bg-subtle);
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+.info-list-row strong {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+.merchant-log-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+}
+.merchant-log-item {
+  display: flex;
+  align-items: center;
+  gap: var(--s-4);
+  min-height: 40px;
+  padding: var(--s-3);
+  border-radius: var(--r-md);
+  background: var(--bg-subtle);
+}
+.merchant-log-item span {
+  width: 92px;
+  color: var(--text-tertiary);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.merchant-log-item strong {
+  font-size: 13px;
+  font-weight: 600;
+}
+.info-notice {
+  display: flex;
+  align-items: center;
+  gap: var(--s-4);
+  padding: var(--s-4) var(--s-5);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  background: var(--bg-surface);
+}
+.info-notice-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--r-md);
+  display: grid;
+  place-items: center;
+  color: var(--c-secondary);
+  background: var(--c-main-50);
+  flex: none;
+}
+.info-notice-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+}
+.info-notice-copy strong {
+  font-size: 13px;
+  font-weight: 700;
+}
+.info-notice-copy span {
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+.document-card {
+  display: flex;
+  align-items: center;
+  gap: var(--s-4);
+  min-height: 88px;
+  padding: var(--s-4);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--bg-subtle);
+}
+.document-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--r-md);
+  display: grid;
+  place-items: center;
+  color: var(--c-secondary);
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  flex: none;
+}
+.document-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+}
+.document-copy strong {
+  font-size: 13px;
+  font-weight: 700;
+}
+.document-copy span {
+  color: var(--text-tertiary);
+  font-size: 12px;
+}
+
 /* Sparkline */
 .bar-row {
   display: flex; align-items: end; gap: 4px; height: 64px;
