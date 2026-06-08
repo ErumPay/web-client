@@ -12,8 +12,13 @@ const NAV_STORE = [
   { id: "settlement-info", label: "정산 정보",   icon: "Wallet" },
 ];
 
-const Sidebar = ({ current, onNav, collapsed }) => {
+const Sidebar = ({ current, onNav, collapsed, onToggle }) => {
   const isStoreActive = NAV_STORE.some(it => it.id === current);
+  const [storeOpen, setStoreOpen] = React.useState(isStoreActive);
+
+  React.useEffect(() => {
+    if (isStoreActive) setStoreOpen(true);
+  }, [isStoreActive]);
 
   const item = (it) => {
     const Ico = Icons[it.icon];
@@ -49,21 +54,33 @@ const Sidebar = ({ current, onNav, collapsed }) => {
     <aside className={`sidebar ${collapsed ? "collapsed" : ""}`}>
       <div className="sidebar-brand">
         <img className="brand-ci" src="/assets/erumpay-ci.png" alt="ErumPay" />
-        <button className="sidebar-menu-btn" title="메뉴 접기">
+        <button
+          className="sidebar-menu-btn"
+          onClick={onToggle}
+          title={collapsed ? "메뉴 펼치기" : "메뉴 접기"}
+          aria-label={collapsed ? "메뉴 펼치기" : "메뉴 접기"}
+        >
           <Icons.Menu size={20}/>
         </button>
       </div>
       <nav className="sidebar-nav">
         {NAV_MAIN.map(item)}
-        <div className={`nav-group ${isStoreActive ? "active" : ""}`}>
-          <button className="nav-item nav-parent" onClick={() => onNav("store-info")} title="내 가게 정보 관리">
+        <div className={`nav-group ${isStoreActive ? "active" : ""} ${storeOpen ? "open" : ""}`}>
+          <button
+            className="nav-item nav-parent"
+            onClick={() => setStoreOpen(open => !open)}
+            title="내 가게 정보 관리"
+            aria-expanded={storeOpen}
+          >
             <span className="nav-icon"><Icons.Store size={18}/></span>
             <span className="nav-label">내 가게 정보 관리</span>
             <span className="nav-caret"><Icons.Down size={14}/></span>
           </button>
-          <div className="nav-sub-list">
-            {NAV_STORE.map(childItem)}
-          </div>
+          {storeOpen && (
+            <div className="nav-sub-list">
+              {NAV_STORE.map(childItem)}
+            </div>
+          )}
         </div>
       </nav>
       <div className="sidebar-footer">
@@ -76,11 +93,8 @@ const Sidebar = ({ current, onNav, collapsed }) => {
   );
 };
 
-const Header = ({ onToggleSidebar, crumbs, onBell, onUser, unread }) => (
+const Header = ({ crumbs, onUser }) => (
   <header className="header">
-    <button className="icon-btn" onClick={onToggleSidebar} title="메뉴 접기">
-      <Icons.Menu size={20}/>
-    </button>
     <div className="crumbs">
       {crumbs.map((c, i) => (
         <React.Fragment key={i}>
@@ -90,10 +104,6 @@ const Header = ({ onToggleSidebar, crumbs, onBell, onUser, unread }) => (
       ))}
     </div>
     <div className="spacer"></div>
-    <div className="bell-wrap">
-      <button className="icon-btn" onClick={onBell} title="알림"><Icons.Bell size={20}/></button>
-      {unread > 0 && <span className="bell-dot"/>}
-    </div>
     <button className="user-chip" onClick={onUser}>
       <span className="avatar">김</span>
       <span>김이름</span>

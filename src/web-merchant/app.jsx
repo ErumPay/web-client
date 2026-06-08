@@ -16,38 +16,110 @@ const ROUTES = {
 const App = () => {
   const [page, setPage] = React.useState("dashboard");
   const [collapsed, setCollapsed] = React.useState(false);
-  const [authed, setAuthed] = React.useState(false);
+  const [authed, setAuthed] = React.useState(() => window.AuthSession.isAuthenticated());
   const [authStep, setAuthStep] = React.useState("login");
+  const [authLoading, setAuthLoading] = React.useState(false);
+  const [authError, setAuthError] = React.useState("");
   const [merchant, setMerchant] = React.useState(null);
   const [tx, setTx] = React.useState(null);
 
   React.useEffect(() => {
+    const exchangeKakaoCode = async () => {
+      const params = new URLSearchParams(window.location.search);
+      const code = params.get("code");
+      if (!code) return;
+
+      setAuthLoading(true);
+      setAuthError("");
+      try {
+        const result = await window.AuthApi.loginWithKakaoCode(code);
+        window.history.replaceState({}, document.title, window.location.pathname);
+
+        if (result.signup_token) {
+          setAuthed(false);
+          setAuthStep("terms");
+          window.location.hash = "terms";
+          return;
+        }
+
+        setAuthed(true);
+        setPage("dashboard");
+        window.location.hash = "dashboard";
+        await window.MerchantBackendApi.getMerchant(result.merchant_id);
+      } catch (error) {
+        setAuthed(false);
+        setAuthStep("login");
+        setAuthError(error.message);
+      } finally {
+        setAuthLoading(false);
+      }
+    };
+
     const onHash = () => {
       const h = window.location.hash.replace("#", "");
-      if (h === "login" || h === "") { setAuthed(false); setAuthStep("login"); return; }
+      if (h === "login") { setAuthed(false); setAuthStep("login"); return; }
+      if (h === "") {
+        if (window.AuthSession.isAuthenticated()) {
+          setAuthed(true);
+          setPage("dashboard");
+          if (!window.AuthSession.getProfile()) {
+            window.MerchantBackendApi.getMerchant().catch(error => console.error("Merchant profile load failed", error));
+          }
+        } else {
+          setAuthed(false);
+          setAuthStep("login");
+        }
+        return;
+      }
       if (h === "terms") { setAuthed(false); setAuthStep("terms"); return; }
       if (h === "signup-info") { setAuthed(false); setAuthStep("info"); return; }
       if (h === "signup-complete") { setAuthed(false); setAuthStep("complete"); return; }
-      if (ROUTES[h]) setPage(h);
+      if (ROUTES[h]) {
+        setAuthed(window.AuthSession.isAuthenticated());
+        setPage(h);
+        if (window.AuthSession.isAuthenticated() && !window.AuthSession.getProfile()) {
+          window.MerchantBackendApi.getMerchant().catch(error => console.error("Merchant profile load failed", error));
+        }
+      }
     };
     onHash();
+    exchangeKakaoCode();
     window.addEventListener("hashchange", onHash);
     return () => window.removeEventListener("hashchange", onHash);
   }, []);
 
-  const nav = (id) => {
-    if (id === "login") { setAuthed(false); setAuthStep("login"); window.location.hash = "login"; return; }
+  const nav = async (id) => {
+    if (id === "login") {
+      try {
+        await window.AuthApi.logout();
+      } catch (error) {
+        console.error("Logout failed", error);
+        window.AuthSession.clear();
+      }
+      setAuthed(false);
+      setAuthStep("login");
+      window.location.hash = "login";
+      return;
+    }
     setPage(id);
     setMerchant(null); setTx(null);
     window.location.hash = id;
   };
+
+  if (authLoading) {
+    return <div className="auth-loading">카카오 로그인 정보를 확인하고 있습니다.</div>;
+  }
 
   if (!authed) {
     if (authStep === "terms") {
       return (
         <TermsAgreement
           onCancel={() => { setAuthStep("login"); window.location.hash = "login"; }}
-          onNext={() => { setAuthStep("info"); window.location.hash = "signup-info"; }}
+          onNext={async (agreement) => {
+            await window.AuthApi.agreeTerms(agreement);
+            setAuthStep("info");
+            window.location.hash = "signup-info";
+          }}
         />
       );
     }
@@ -56,36 +128,37 @@ const App = () => {
       return (
         <SignupInfo
           onPrev={() => { setAuthStep("terms"); window.location.hash = "terms"; }}
-          onSubmit={() => { setAuthStep("complete"); window.location.hash = "signup-complete"; }}
+          onSubmit={async (form) => {
+            await window.AuthApi.signup(form);
+            setAuthStep("complete");
+            window.location.hash = "signup-complete";
+          }}
         />
       );
     }
 
     if (authStep === "complete") {
-      return <ReviewComplete onEnterMain={() => { setAuthed(true); window.location.hash = "dashboard"; }}/>;
+      return <ReviewComplete onEnterMain={() => { setAuthed(false); setAuthStep("login"); window.location.hash = "login"; }}/>;
     }
 
     return (
       <MerchantLogin
-        onStart={() => { setAuthStep("terms"); window.location.hash = "terms"; }}
-        onEnterMain={() => { setAuthed(true); window.location.hash = "dashboard"; }}
+        error={authError}
+        onStart={() => window.AuthApi.startKakaoLogin()}
+        onEnterMain={() => window.AuthApi.startKakaoLogin()}
       />
     );
   }
 
-  const route = ROUTES[page] || ROUTES.dashboard;
-
   return (
     <div className={`app ${collapsed ? "collapsed" : ""}`}>
-      <Sidebar current={page} onNav={nav} collapsed={collapsed}/>
+      <Sidebar
+        current={page}
+        onNav={nav}
+        collapsed={collapsed}
+        onToggle={() => setCollapsed(!collapsed)}
+      />
       <main>
-        <Header
-          onToggleSidebar={() => setCollapsed(!collapsed)}
-          crumbs={route.crumbs}
-          onBell={() => nav("notices")}
-          onUser={() => nav("store-info")}
-          unread={3}
-        />
         {page === "dashboard"    && <Dashboard onOpenMerchant={setMerchant}/>}
         {page === "sales"        && <Sales/>}
         {page === "transactions" && <Transactions onOpen={setTx}/>}
@@ -96,7 +169,6 @@ const App = () => {
         {page === "settlement-info" && <MerchantInfo initialTab="settlement"/>}
         {page === "merchant-info" && <MerchantInfo initialTab="store"/>}
         {page === "support"      && <Support/>}
-        <div className="page-footer">© 2024 ErumPay. All rights reserved.</div>
       </main>
       {merchant && <MerchantDrawer merchant={merchant} onClose={() => setMerchant(null)}/>}
       {tx       && <TransactionDrawer tx={tx}             onClose={() => setTx(null)}/>}
