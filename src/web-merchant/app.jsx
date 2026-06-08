@@ -39,20 +39,27 @@ const App = () => {
           setAuthed(false);
           setAuthStep("terms");
           window.location.hash = "terms";
+          setAuthLoading(false);
           return;
         }
 
         setAuthed(true);
         setPage("dashboard");
         window.location.hash = "dashboard";
-        await window.MerchantBackendApi.getMerchant(result.merchant_id);
       } catch (error) {
         setAuthed(false);
         setAuthStep("login");
         setAuthError(error.message);
-      } finally {
         setAuthLoading(false);
+        return;
       }
+
+      try {
+        await window.MerchantBackendApi.getMerchant();
+      } catch (error) {
+        console.error("Merchant profile load failed", error);
+      }
+      setAuthLoading(false);
     };
 
     const onHash = () => {

@@ -18,7 +18,13 @@ class ApiError extends Error {
 const readJson = async (response) => {
   if (response.status === 204) return null;
   const text = await response.text();
-  return text ? JSON.parse(text) : null;
+  if (!text) return null;
+
+  try {
+    return JSON.parse(text);
+  } catch {
+    return response.ok ? text : { message: text };
+  }
 };
 
 const request = async (baseUrl, path, options = {}) => {
@@ -67,6 +73,13 @@ const AuthSession = {
   setProfile: (profile) => localStorage.setItem(PROFILE_KEY, JSON.stringify(profile)),
 };
 
+let refreshTokenMemory = null;
+
+const getAuthHeaders = () => {
+  const { accessToken } = AuthSession.get();
+  return accessToken ? { Authorization: `Bearer ${accessToken}` } : {};
+};
+
 const AuthApi = {
   getKakaoAuthorizeUrl: () => {
     const clientId = import.meta.env.VITE_KAKAO_CLIENT_ID;
@@ -92,9 +105,9 @@ const AuthApi = {
       merchantId: response.merchant_id,
       status: response.status,
       accessToken: response.access_token,
-      refreshToken: response.refresh_token,
       signupToken: response.signup_token,
     });
+    refreshTokenMemory = response.refresh_token || null;
     return response;
   },
   agreeTerms: async ({ serviceTermsAgreed, privacyPolicyAgreed, marketingAgreed }) => {
@@ -133,16 +146,18 @@ const AuthApi = {
   },
   logout: async () => {
     const session = AuthSession.get();
-    if (session.refreshToken) {
+    const refreshToken = refreshTokenMemory || session.refreshToken;
+    if (refreshToken) {
       await request(AUTH_API_BASE_URL, "/api/v1/auth/merchant/logout", {
         method: "POST",
-        headers: { Authorization: `Bearer ${session.refreshToken}` },
+        headers: { Authorization: `Bearer ${refreshToken}` },
         body: JSON.stringify({
-          refresh_token: session.refreshToken,
+          refresh_token: refreshToken,
           access_token: session.accessToken,
         }),
       });
     }
+    refreshTokenMemory = null;
     AuthSession.clear();
   },
 };
@@ -150,13 +165,16 @@ const AuthApi = {
 const MerchantBackendApi = {
   getMerchant: async (merchantId = AuthSession.get().merchantId) => {
     if (!merchantId) return null;
-    const profile = await request(MERCHANT_API_BASE_URL, `/api/v1/pg-admin/merchants/${merchantId}`);
+    const profile = await request(MERCHANT_API_BASE_URL, `/api/v1/pg-admin/merchants/${merchantId}`, {
+      headers: getAuthHeaders(),
+    });
     AuthSession.setProfile(profile);
     return profile;
   },
   updateMerchant: async (merchantId, payload) => {
     const profile = await request(MERCHANT_API_BASE_URL, `/api/v1/pg-admin/merchants/${merchantId}`, {
       method: "PUT",
+      headers: getAuthHeaders(),
       body: JSON.stringify(payload),
     });
     AuthSession.setProfile(profile);

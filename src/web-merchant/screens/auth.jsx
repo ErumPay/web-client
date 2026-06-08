@@ -282,7 +282,7 @@ const AuthUpload = ({ label, wide }) => (
   </div>
 );
 
-const ReviewComplete = ({ onEnterMain }) => (
+const ReviewComplete = ({ onEnterMain, onCheckReview = onEnterMain }) => (
   <div className="merchant-auth-shell">
     <div className="merchant-auth-stage complete-stage">
       <AuthBrand/>
@@ -301,7 +301,7 @@ const ReviewComplete = ({ onEnterMain }) => (
         </div>
 
         <button className="btn primary lg" onClick={onEnterMain}>로그인 페이지로 이동</button>
-        <button className="btn ghost lg">심사 신청 조회</button>
+        <button className="btn ghost lg" onClick={onCheckReview}>심사 신청 조회</button>
       </div>
       <AuthSupport/>
     </div>

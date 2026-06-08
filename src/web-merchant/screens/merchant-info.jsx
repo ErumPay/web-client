@@ -243,10 +243,10 @@ const MerchantInfo = ({ initialTab = "store" }) => {
             setError("");
             try {
               const updatedMerchant = applyInfoDraft(merchant, section, draft);
-              const remote = window.AuthSession.getProfile();
-              const session = window.AuthSession.get();
+              const remote = window.AuthSession?.getProfile?.();
+              const session = window.AuthSession?.get?.() || {};
 
-              if (remote && session.merchantId) {
+              if (remote && session?.merchantId) {
                 await window.MerchantBackendApi.updateMerchant(session.merchantId, {
                   merchantName: section === "store" ? updatedMerchant.store.name : updatedMerchant.name,
                   ownerName: updatedMerchant.rep,
