@@ -1,236 +1,255 @@
 /* Merchant auth and onboarding */
 
-const AuthBrand = ({ compact = false }) => (
-  <div className={`merchant-auth-brand ${compact ? "compact" : ""}`}>
+const AuthBrand = () => (
+  <div className="merchant-auth-brand">
     <img src="/assets/erumpay-ci.png" alt="ErumPay" />
+    <span>가맹점 관리자 페이지</span>
   </div>
 );
 
 const AuthStepper = ({ current }) => {
   const steps = [
-    ["terms", "약관동의"],
-    ["info", "추가 정보 입력"],
-    ["review", "심사요청"],
+    ["terms", "약관 동의"],
+    ["info", "정보 입력"],
+    ["complete", "완료"],
   ];
+  const currentIndex = steps.findIndex(step => step[0] === current);
 
   return (
     <div className="merchant-stepper">
       {steps.map((step, index) => {
-        const active = step[0] === current;
-        const done = steps.findIndex(s => s[0] === current) > index;
+        const done = index < currentIndex;
+        const active = index === currentIndex;
         return (
-          <div key={step[0]} className={`merchant-step ${active ? "active" : ""} ${done ? "done" : ""}`}>
-            <span>{index + 1}</span>
-            <strong>{step[1]}</strong>
-          </div>
+          <React.Fragment key={step[0]}>
+            <div className={`merchant-step ${active ? "active" : ""} ${done ? "done" : ""}`}>
+              <span>{done ? <Icons.Check size={13}/> : index + 1}</span>
+              <strong>{step[1]}</strong>
+            </div>
+            {index < steps.length - 1 && <div className={`merchant-step-line ${done ? "done" : ""}`}/>}
+          </React.Fragment>
         );
       })}
     </div>
   );
 };
 
-const MerchantLogin = ({ onStart, onEnterMain }) => (
-  <div className="merchant-auth-shell login">
-    <div className="merchant-auth-bg">
-      <AuthBrand/>
-      <button className="kakao-start" onClick={onStart}>
-        <span className="kakao-bubble"/>
-        <strong>카카오로 시작</strong>
-      </button>
-      <button className="review-status-btn" onClick={onEnterMain}>
-        <Icons.Right size={15}/>
-        메인 바로가기
-      </button>
+const MerchantLogin = ({ onStart, onEnterMain, error }) => {
+  const [configError, setConfigError] = React.useState("");
+  const start = (handler) => {
+    setConfigError("");
+    try {
+      handler();
+    } catch (startError) {
+      setConfigError(startError.message);
+    }
+  };
+
+  return (
+    <div className="merchant-auth-shell">
+      <div className="merchant-auth-stage login-stage">
+        <AuthBrand/>
+        <div className="login-card merchant-auth-card">
+          <h1>간편하게 시작하세요</h1>
+          <p>카카오 계정으로 빠르게 로그인하고<br/>가맹점 서비스를 이용해보세요</p>
+          <button className="kakao-start" onClick={() => start(onStart)}>
+            <span className="kakao-bubble"/>
+            카카오로 3초만에 시작하기
+          </button>
+
+          <button className="review-status-btn" onClick={() => start(onEnterMain)}>
+            <Icons.CircleCheck size={16}/>
+            제출 완료하셨나요?
+            <small>카카오 계정으로 로그인하시면 가맹점 심사 진행상태를 확인할 수 있습니다.</small>
+          </button>
+
+          {(error || configError) && <div className="auth-error">{error || configError}</div>}
+
+          <ul className="login-benefits">
+            <li>별도 회원가입 없이 간편 로그인</li>
+            <li>안전한 카카오 계정 시스템</li>
+            <li>빠른 가맹점 심사 진행</li>
+          </ul>
+        </div>
+        <AuthSupport/>
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 const TermsAgreement = ({ onCancel, onNext }) => {
   const [requiredTerms, setRequiredTerms] = React.useState(false);
   const [privacy, setPrivacy] = React.useState(false);
   const [marketing, setMarketing] = React.useState(false);
-  const [age, setAge] = React.useState(false);
-  const canNext = requiredTerms && privacy && age;
+  const [submitting, setSubmitting] = React.useState(false);
+  const [error, setError] = React.useState("");
+  const canNext = requiredTerms && privacy;
 
   const toggleAll = () => {
-    const next = !(requiredTerms && privacy && marketing && age);
+    const next = !(requiredTerms && privacy && marketing);
     setRequiredTerms(next);
     setPrivacy(next);
     setMarketing(next);
-    setAge(next);
   };
 
   return (
-    <div className="merchant-auth-shell terms">
-      <aside className="merchant-auth-side">
+    <div className="merchant-auth-shell">
+      <div className="merchant-auth-stage">
         <AuthBrand/>
         <AuthStepper current="terms"/>
-      </aside>
-      <main className="merchant-auth-panel">
-        <div className="terms-card">
-          <h1>서비스 이용약관 및 개인정보 처리방침 동의</h1>
-          <p>모든 약관을 확인하신 후 동의해 주세요.</p>
+        <main className="merchant-auth-card terms-card">
+          <h1>서비스 이용약관에 동의해주세요</h1>
+          <p>ErumPay 가맹점 서비스 이용을 위해 아래 약관에 동의해주세요.</p>
 
           <label className="terms-all">
-            <input
-              type="checkbox"
-              checked={requiredTerms && privacy && marketing && age}
-              onChange={toggleAll}
-            />
-            <span>모든 약관에 동의합니다.</span>
+            <input type="checkbox" checked={requiredTerms && privacy && marketing} onChange={toggleAll}/>
+            <span>전체 약관에 동의합니다</span>
           </label>
 
           <div className="terms-list">
             <TermsItem
               checked={requiredTerms}
               onChange={setRequiredTerms}
-              title="[필수] 서비스 이용약관 동의"
-              body="이 약관은 ErumPay가 제공하는 가맹점 정산 서비스의 이용조건, 절차 및 책임사항을 규정합니다."
+              title="서비스 이용약관 동의"
+              required
+              body="회원의 권리와 의무, ErumPay가 제공하는 가맹점 정산 서비스의 이용조건과 책임사항을 확인합니다."
             />
             <TermsItem
               checked={privacy}
               onChange={setPrivacy}
-              title="[필수] 개인정보 처리방침 동의"
-              body="가맹점 가입 확인, 결제 및 정산 처리, 고객 응대를 위해 필요한 개인정보를 수집하고 이용합니다."
+              title="개인정보 수집 및 이용 동의"
+              required
+              body="가맹점 가입, 본인 확인, 정산 처리, 고객 응대를 위한 필수 개인정보 수집 및 이용에 동의합니다."
             />
             <TermsItem
               checked={marketing}
               onChange={setMarketing}
-              title="[선택] 마케팅 정보 수신 동의"
-              body="새로운 소식과 혜택 정보를 받아보실 수 있습니다. 선택 동의 여부는 서비스 이용에 영향을 주지 않습니다."
-              compact
+              title="마케팅 정보 수신 동의"
+              body="이벤트, 프로모션, 서비스 업데이트 정보를 받을 수 있습니다."
             />
-            <label className="terms-age">
-              <input type="checkbox" checked={age} onChange={e => setAge(e.target.checked)}/>
-              <span>만 14세 이상입니다.</span>
-            </label>
           </div>
 
           <div className="merchant-auth-actions">
-            <button className="btn ghost lg" onClick={onCancel}>취소</button>
-            <button className="btn primary lg" disabled={!canNext} onClick={onNext}>
-              다음 <Icons.Right size={15}/>
+            <button className="btn ghost lg" onClick={onCancel}>이전</button>
+            <button
+              className="btn primary lg"
+              disabled={!canNext || submitting}
+              onClick={async () => {
+                setSubmitting(true);
+                setError("");
+                try {
+                  await onNext({
+                    serviceTermsAgreed: requiredTerms,
+                    privacyPolicyAgreed: privacy,
+                    marketingAgreed: marketing,
+                  });
+                } catch (submitError) {
+                  setError(submitError.message);
+                } finally {
+                  setSubmitting(false);
+                }
+              }}
+            >
+              {submitting ? "처리 중..." : "다음"}
             </button>
           </div>
-        </div>
-      </main>
+          {error && <div className="auth-error">{error}</div>}
+        </main>
+      </div>
     </div>
   );
 };
 
-const TermsItem = ({ checked, onChange, title, body, compact }) => (
-  <section className={`terms-item ${compact ? "compact" : ""}`}>
+const TermsItem = ({ checked, onChange, title, body, required }) => (
+  <section className="terms-item">
     <div className="terms-item-head">
       <label>
-        <input type="checkbox" checked={checked} onChange={e => onChange(e.target.checked)}/>
-        <span>{title}</span>
+        <input type="checkbox" checked={checked} onChange={event => onChange(event.target.checked)}/>
+        <span>{title} {required && <em>필수</em>}</span>
       </label>
-      <button className="terms-detail">
-        내용보기 <Icons.Right size={13}/>
-      </button>
+      <button className="terms-detail" type="button">보기</button>
     </div>
     <div className="terms-copy">{body}</div>
   </section>
 );
 
-const SignupInfo = ({ onPrev, onSubmit }) => (
-  <div className="merchant-auth-shell terms">
-    <aside className="merchant-auth-side">
-      <AuthBrand compact/>
-      <AuthStepper current="info"/>
-    </aside>
-    <main className="merchant-auth-panel">
-      <div className="signup-card">
-        <h1>가맹점 정보를 입력해 주세요</h1>
-        <p>심사를 위해 사업자와 정산 정보를 정확히 입력해 주세요.</p>
+const SignupInfo = ({ onPrev, onSubmit }) => {
+  const [form, setForm] = React.useState({
+    merchantName: "",
+    businessNumber: "",
+    representativeName: "",
+    contactPhone: "",
+    contactEmail: "",
+    mccCode: "",
+    bankName: "",
+    settlementAccount: "",
+    serviceName: "",
+    businessAddress: "",
+    businessAddressDetail: "",
+  });
+  const [submitting, setSubmitting] = React.useState(false);
+  const [error, setError] = React.useState("");
+  const update = (name, value) => setForm(current => ({ ...current, [name]: value }));
 
-        <FormSection title="사업자 기본정보">
-          <Field label="사업자 등록번호">
-            <input className="input" placeholder="000-00-00000"/>
-          </Field>
-          <Field label="상호명">
-            <input className="input" placeholder="상호명을 입력해 주세요."/>
-          </Field>
-          <Field label="사업장 주소">
-            <input className="input" placeholder="사업장 주소를 입력해 주세요."/>
-          </Field>
-          <Field label="업태">
-            <input className="input" placeholder="업태를 입력해 주세요."/>
-          </Field>
-          <Field label="종목">
-            <input className="input" placeholder="종목을 입력해 주세요."/>
-          </Field>
-        </FormSection>
+  return (
+    <div className="merchant-auth-shell">
+      <div className="merchant-auth-stage info-stage">
+        <AuthBrand/>
+        <AuthStepper current="info"/>
+        <main className="merchant-auth-card signup-card">
+          <h1>가맹점 정보를 입력해주세요</h1>
+          <p>정확한 정보를 입력해야 심사를 빠르게 진행할 수 있습니다.</p>
 
-        <FormSection title="대표자 및 담당자 정보">
-          <Field label="대표자명">
-            <input className="input" placeholder="대표자명을 입력해 주세요."/>
-          </Field>
-          <Field label="대표자 휴대전화번호">
-            <input className="input" placeholder="010-0000-0000"/>
-          </Field>
-          <Field label="담당자명">
-            <input className="input" placeholder="담당자명을 입력해 주세요."/>
-          </Field>
-          <Field label="담당자 휴대전화번호">
-            <input className="input" placeholder="010-0000-0000"/>
-          </Field>
-        </FormSection>
+          <FormSection title="사업자 정보">
+            <AuthInput name="merchantName" value={form.merchantName} onChange={update} label="상호명" placeholder="사업자등록증상의 상호명을 입력하세요" wide/>
+            <AuthInput name="businessNumber" value={form.businessNumber} onChange={update} label="사업자등록번호" placeholder="123-45-67890"/>
+            <AuthInput name="representativeName" value={form.representativeName} onChange={update} label="대표자명" placeholder="대표자 이름을 입력하세요"/>
+            <AuthInput name="mccCode" value={form.mccCode} onChange={update} label="MCC 코드" placeholder="숫자 4자리"/>
+            <AuthInput name="serviceName" value={form.serviceName} onChange={update} label="서비스명" placeholder="가맹점 서비스명을 입력하세요"/>
+            <AuthUpload label="사업자등록증 첨부" wide/>
+          </FormSection>
 
-        <FormSection title="출금 계좌 정보">
-          <Field label="은행">
-            <Select value="shinhan" onChange={()=>{}} options={[
-              {value: "shinhan", label: "신한은행"},
-              {value: "kb", label: "KB국민은행"},
-              {value: "hana", label: "하나은행"},
-              {value: "woori", label: "우리은행"},
-            ]}/>
-          </Field>
-          <Field label="계좌번호">
-            <input className="input" placeholder="계좌번호를 입력해 주세요."/>
-          </Field>
-          <Field label="예금주명">
-            <input className="input" placeholder="예금주명을 입력해 주세요."/>
-          </Field>
-        </FormSection>
+          <FormSection title="담당자 정보">
+            <AuthInput name="contactPhone" value={form.contactPhone} onChange={update} label="연락처" placeholder="010-1234-5678"/>
+            <AuthInput name="contactEmail" value={form.contactEmail} onChange={update} label="이메일" placeholder="example@email.com"/>
+          </FormSection>
 
-        <FormSection title="가맹점 서비스 정보">
-          <Field label="가맹점명">
-            <input className="input" placeholder="가맹점명을 입력해 주세요."/>
-          </Field>
-          <Field label="업종">
-            <Select value="retail" onChange={()=>{}} options={[
-              {value: "retail", label: "리테일"},
-              {value: "food", label: "F&B"},
-              {value: "service", label: "서비스"},
-            ]}/>
-          </Field>
-          <Field label="MCC 코드">
-            <div className="row" style={{gap: 8}}>
-              <input className="input" placeholder="MCC 코드를 입력해 주세요."/>
-              <button className="btn secondary">코드 검색</button>
-            </div>
-          </Field>
-        </FormSection>
+          <FormSection title="정산 계좌">
+            <AuthInput name="bankName" value={form.bankName} onChange={update} label="은행명" placeholder="신한은행"/>
+            <AuthInput name="settlementAccount" value={form.settlementAccount} onChange={update} label="계좌번호" placeholder="110-123-456789"/>
+          </FormSection>
 
-        <FormSection title="첨부서류">
-          <div className="upload-box">
-            <Icons.Download size={18}/>
-            <div>
-              <strong>파일 선택</strong>
-              <span>사업자등록증, 통장 사본 등 심사 서류를 첨부해 주세요.</span>
-            </div>
+          <FormSection title="사업장 주소">
+            <AuthInput name="businessAddress" value={form.businessAddress} onChange={update} label="기본 주소" placeholder="사업장 주소를 입력하세요" wide/>
+            <AuthInput name="businessAddressDetail" value={form.businessAddressDetail} onChange={update} label="상세 주소" placeholder="상세 주소를 입력하세요" wide/>
+          </FormSection>
+
+          <div className="merchant-auth-actions">
+            <button className="btn ghost lg" onClick={onPrev}>이전</button>
+            <button
+              className="btn primary lg"
+              disabled={submitting}
+              onClick={async () => {
+                setSubmitting(true);
+                setError("");
+                try {
+                  await onSubmit(form);
+                } catch (submitError) {
+                  setError(submitError.message);
+                } finally {
+                  setSubmitting(false);
+                }
+              }}
+            >
+              {submitting ? "신청 중..." : "가입 신청"}
+            </button>
           </div>
-        </FormSection>
-
-        <div className="merchant-auth-actions">
-          <button className="btn ghost lg" onClick={onPrev}>이전</button>
-          <button className="btn primary lg" onClick={onSubmit}>심사 신청하기</button>
-        </div>
+          {error && <div className="auth-error">{error}</div>}
+        </main>
       </div>
-    </main>
-  </div>
-);
+    </div>
+  );
+};
 
 const FormSection = ({ title, children }) => (
   <section className="signup-section">
@@ -239,17 +258,60 @@ const FormSection = ({ title, children }) => (
   </section>
 );
 
-const ReviewComplete = ({ onEnterMain }) => (
-  <div className="merchant-auth-shell complete">
-    <div className="merchant-auth-bg">
-      <AuthBrand/>
-      <div className="review-complete-copy">
-        <div className="complete-icon"><Icons.Check size={44}/></div>
-        <h1>심사 신청이 완료되었습니다.</h1>
-        <p>PG 검토 후 승인 결과를 이메일 및 문자로 안내해 드리겠습니다.</p>
-        <button className="btn primary lg" onClick={onEnterMain}>메인으로 이동</button>
-      </div>
+const AuthInput = ({ name, value, onChange, label, placeholder, type = "text", wide }) => (
+  <label className={`auth-field ${wide ? "wide" : ""}`}>
+    <span>{label}<em>*</em></span>
+    <input
+      className="input"
+      type={type}
+      value={value}
+      placeholder={placeholder}
+      onChange={event => onChange(name, event.target.value)}
+    />
+  </label>
+);
+
+const AuthUpload = ({ label, wide }) => (
+  <div className={`auth-field ${wide ? "wide" : ""}`}>
+    <span>{label}<em>*</em></span>
+    <div className="upload-box">
+      <Icons.Download size={20}/>
+      <strong>클릭하여 파일 업로드</strong>
+      <small>JPG, PNG, PDF 파일만 가능</small>
     </div>
+  </div>
+);
+
+const ReviewComplete = ({ onEnterMain, onCheckReview = onEnterMain }) => (
+  <div className="merchant-auth-shell">
+    <div className="merchant-auth-stage complete-stage">
+      <AuthBrand/>
+      <div className="merchant-auth-card review-complete-copy">
+        <div className="complete-icon"><Icons.Check size={32}/></div>
+        <h1>심사 신청이 완료되었습니다</h1>
+        <p>가맹점 심사는 영업일 기준 2~3일 소요됩니다.<br/>심사 결과는 등록하신 이메일로 안내됩니다.</p>
+
+        <div className="complete-notice">
+          <strong>안내사항</strong>
+          <ul>
+            <li>심사 진행 상태는 이메일로 안내됩니다.</li>
+            <li>추가 서류가 필요한 경우 담당자가 연락드립니다.</li>
+            <li>승인 완료 후 바로 서비스를 이용할 수 있습니다.</li>
+          </ul>
+        </div>
+
+        <button className="btn primary lg" onClick={onEnterMain}>로그인 페이지로 이동</button>
+        <button className="btn ghost lg" onClick={onCheckReview}>심사 신청 조회</button>
+      </div>
+      <AuthSupport/>
+    </div>
+  </div>
+);
+
+const AuthSupport = () => (
+  <div className="auth-support">
+    <span>문의사항이 있으신가요?</span>
+    <strong>전화: 1234-5678 | 이메일: support@erumpay.com</strong>
   </div>
 );
 

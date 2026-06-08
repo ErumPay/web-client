@@ -59,26 +59,41 @@ const MerchantApi = {
   getSettlements: () => clone(MERCHANT_SETTLEMENTS_MOCK),
   getMerchantProfile: () => {
     const merchant = createMerchants()[0];
-    return {
+    const remote = window.AuthSession?.getProfile?.();
+    const remoteMerchant = remote ? {
       ...merchant,
+      name: remote.merchantName || merchant.name,
+      mid: String(remote.merchantId || merchant.mid),
+      bizNo: remote.businessNumber || merchant.bizNo,
+      rep: remote.ownerName || merchant.rep,
+      category: remote.categoryName || merchant.category,
+      status: remote.status === "ACTIVE" ? "normal" : remote.status === "SUSPENDED" ? "suspended" : "caution",
+      fee: Number(remote.feeRate ?? merchant.fee),
+      settlementAccount: remote.settlementAccount,
+      storeAddress: remote.businessAddress,
+      contactPhone: remote.contactPhone,
+      mccCode: remote.mccCode,
+    } : merchant;
+    return {
+      ...remoteMerchant,
       store: {
-        name: `${merchant.name} 강남점`,
-        phone: "02-1234-5678",
+        name: remoteMerchant.name,
+        phone: remoteMerchant.contactPhone || "02-1234-5678",
         email: "store@erumpay.kr",
-        address: "서울특별시 강남구 테헤란로 123",
+        address: remoteMerchant.storeAddress || "서울특별시 강남구 테헤란로 123",
         hours: "10:00 - 22:00",
       },
       business: {
         type: "소매",
-        item: merchant.category,
+        item: remoteMerchant.category,
         openedAt: "2023-02-01",
-        address: "서울특별시 강남구 테헤란로 123",
+        address: remoteMerchant.storeAddress || "서울특별시 강남구 테헤란로 123",
         documentName: "사업자등록증.pdf",
         documentSubmittedAt: "2026-05-28",
       },
       settlement: {
         bank: "신한은행",
-        accountNo: "110-***-******",
+        accountNo: remoteMerchant.settlementAccount || "110-***-******",
         cycle: "주 1회",
         nextPayDate: "2026-06-10",
         basis: "승인일 + 3영업일",

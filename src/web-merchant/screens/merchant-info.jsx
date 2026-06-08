@@ -22,25 +22,192 @@ const InfoList = ({ rows }) => (
   </div>
 );
 
+const getInfoDraft = (merchant, section) => {
+  if (section === "business") {
+    return {
+      name: merchant.name,
+      bizNo: merchant.bizNo,
+      rep: merchant.rep,
+      registrationNo: "",
+      type: merchant.business.type,
+      item: merchant.business.item,
+      address: merchant.business.address,
+    };
+  }
+
+  if (section === "settlement") {
+    return {
+      cycle: merchant.settlement.cycle,
+      fee: String(merchant.fee),
+      bank: merchant.settlement.bank,
+      accountNo: merchant.settlement.accountNo,
+      holder: merchant.rep,
+      taxInvoice: "발행",
+    };
+  }
+
+  return {
+    name: merchant.store.name,
+    category: merchant.category,
+    address: merchant.store.address,
+    addressDetail: "",
+    phone: merchant.store.phone,
+    email: merchant.store.email,
+    hours: merchant.store.hours,
+    intro: "",
+  };
+};
+
+const applyInfoDraft = (merchant, section, draft) => {
+  if (section === "business") {
+    return {
+      ...merchant,
+      name: draft.name,
+      bizNo: draft.bizNo,
+      rep: draft.rep,
+      business: {
+        ...merchant.business,
+        type: draft.type,
+        item: draft.item,
+        address: draft.address,
+      },
+    };
+  }
+
+  if (section === "settlement") {
+    return {
+      ...merchant,
+      rep: draft.holder,
+      fee: Number(draft.fee) || merchant.fee,
+      settlement: {
+        ...merchant.settlement,
+        cycle: draft.cycle,
+        bank: draft.bank,
+        accountNo: draft.accountNo,
+      },
+    };
+  }
+
+  return {
+    ...merchant,
+    category: draft.category,
+    store: {
+      ...merchant.store,
+      name: draft.name,
+      address: [draft.address, draft.addressDetail].filter(Boolean).join(", "),
+      phone: draft.phone,
+      email: draft.email,
+      hours: draft.hours,
+    },
+  };
+};
+
+const INFO_FIELDS = {
+  store: [
+    ["name", "가게명", "이룸페이 강남점"],
+    ["category", "업종", "음식점"],
+    ["address", "주소", "서울특별시 강남구 테헤란로 123", "wide"],
+    ["addressDetail", "상세 주소", "456호", "wide"],
+    ["phone", "연락처", "02-1234-5678"],
+    ["email", "이메일", "store@erumpay.com"],
+    ["hours", "운영 시간", "10:00 - 22:00"],
+    ["intro", "가게 소개", "가게에 대한 간단한 소개를 입력해주세요", "wide", "textarea"],
+  ],
+  business: [
+    ["name", "상호명", "(주)이룸페이강남"],
+    ["bizNo", "사업자등록번호", "123-45-67890"],
+    ["rep", "대표자명", "홍길동"],
+    ["registrationNo", "사업자 등록일", "2024-05-01"],
+    ["type", "업태", "도소매"],
+    ["item", "종목", "음식점"],
+    ["address", "사업장 소재지", "서울특별시 강남구 테헤란로 123, 456호", "wide"],
+  ],
+  settlement: [
+    ["cycle", "정산 주기", "주 1회"],
+    ["fee", "수수료율", "2.5"],
+    ["bank", "정산 은행", "신한은행"],
+    ["accountNo", "계좌번호", "110-123-456789"],
+    ["holder", "예금주", "홍길동"],
+    ["taxInvoice", "부가세 포함 여부", "발행"],
+  ],
+};
+
+const InfoEditForm = ({ section, value, onChange, onCancel, onSave }) => (
+  <form className="merchant-edit-card" onSubmit={onSave}>
+    {section === "store" && (
+      <div className="store-profile-editor">
+        <div className="store-profile-placeholder"><Icons.Store size={26}/></div>
+        <div>
+          <strong>가게 프로필 이미지</strong>
+          <span>JPG, PNG 파일을 사용할 수 있습니다.</span>
+          <Button kind="ghost" size="sm" type="button">이미지 업로드</Button>
+        </div>
+      </div>
+    )}
+
+    <div className="merchant-edit-grid">
+      {INFO_FIELDS[section].map(([key, label, placeholder, width, type]) => (
+        <label key={key} className={`merchant-edit-field ${width === "wide" ? "wide" : ""}`}>
+          <span>{label}<em>*</em></span>
+          {type === "textarea" ? (
+            <textarea
+              className="input merchant-edit-textarea"
+              value={value[key]}
+              placeholder={placeholder}
+              onChange={event => onChange(key, event.target.value)}
+            />
+          ) : (
+            <input
+              className="input"
+              value={value[key]}
+              placeholder={placeholder}
+              onChange={event => onChange(key, event.target.value)}
+            />
+          )}
+        </label>
+      ))}
+    </div>
+
+    <div className="merchant-edit-actions">
+      <Button kind="ghost" type="button" onClick={onCancel}><Icons.Close size={14}/> 취소</Button>
+      <Button kind="primary" type="submit"><Icons.Check size={14}/> 저장</Button>
+    </div>
+  </form>
+);
+
 const MerchantInfo = ({ initialTab = "store" }) => {
   const merchant = window.MerchantApi.getMerchantProfile();
   const section = ["store", "business", "settlement"].includes(initialTab) ? initialTab : "store";
+  const [editing, setEditing] = React.useState(false);
+  const [saved, setSaved] = React.useState(() => getInfoDraft(merchant, section));
+  const [draft, setDraft] = React.useState(() => getInfoDraft(merchant, section));
+  const [saving, setSaving] = React.useState(false);
+  const [error, setError] = React.useState("");
+
+  React.useEffect(() => {
+    const next = getInfoDraft(merchant, section);
+    setSaved(next);
+    setDraft(next);
+    setEditing(false);
+  }, [section]);
+
+  const displayedMerchant = applyInfoDraft(merchant, section, saved);
 
   const pageMeta = {
     store: {
-      title: "가게 정보",
+      title: "내 가게 정보 관리",
       desc: "가게 기본 정보와 운영 상태를 확인합니다.",
-      button: "가게 정보 수정 요청",
+      button: "정보 수정",
     },
     business: {
-      title: "사업자 정보",
+      title: "내 가게 정보 관리",
       desc: "사업자 등록 정보와 제출 서류를 확인합니다.",
-      button: "사업자 정보 수정 요청",
+      button: "정보 수정",
     },
     settlement: {
-      title: "정산 정보",
+      title: "내 가게 정보 관리",
       desc: "정산 계좌, 수수료율, 정산 주기를 확인합니다.",
-      button: "정산 정보 수정 요청",
+      button: "정보 수정",
     },
   }[section];
 
@@ -51,12 +218,65 @@ const MerchantInfo = ({ initialTab = "store" }) => {
           <h1 className="page-title">{pageMeta.title}</h1>
           <p className="page-desc">{pageMeta.desc}</p>
         </div>
-        <Button kind="primary"><Icons.Edit size={14}/>{pageMeta.button}</Button>
+        {!editing && (
+          <Button kind="primary" onClick={() => {
+            setDraft(saved);
+            setEditing(true);
+          }}>
+            <Icons.Edit size={14}/>{pageMeta.button}
+          </Button>
+        )}
       </div>
 
-      {section === "store" && <StoreInfo merchant={merchant}/>}
-      {section === "business" && <BusinessInfo merchant={merchant}/>}
-      {section === "settlement" && <SettlementInfo merchant={merchant}/>}
+      {editing ? (
+        <InfoEditForm
+          section={section}
+          value={draft}
+          onChange={(key, value) => setDraft(current => ({ ...current, [key]: value }))}
+          onCancel={() => {
+            setDraft(saved);
+            setEditing(false);
+          }}
+          onSave={async (event) => {
+            event.preventDefault();
+            setSaving(true);
+            setError("");
+            try {
+              const updatedMerchant = applyInfoDraft(merchant, section, draft);
+              const remote = window.AuthSession?.getProfile?.();
+              const session = window.AuthSession?.get?.() || {};
+
+              if (remote && session?.merchantId) {
+                await window.MerchantBackendApi.updateMerchant(session.merchantId, {
+                  merchantName: section === "store" ? updatedMerchant.store.name : updatedMerchant.name,
+                  ownerName: updatedMerchant.rep,
+                  contactPhone: updatedMerchant.store.phone,
+                  businessAddress: section === "store" ? updatedMerchant.store.address : updatedMerchant.business.address,
+                  categoryName: updatedMerchant.category,
+                  mccCode: remote.mccCode || updatedMerchant.mccCode || "5812",
+                  feeRate: Number(updatedMerchant.fee),
+                  settlementAccount: updatedMerchant.settlement.accountNo,
+                });
+              }
+
+              setSaved(draft);
+              setEditing(false);
+            } catch (saveError) {
+              setError(saveError.message);
+            } finally {
+              setSaving(false);
+            }
+          }}
+        />
+      ) : (
+        <React.Fragment>
+          {section === "store" && <StoreInfo merchant={displayedMerchant}/>}
+          {section === "business" && <BusinessInfo merchant={displayedMerchant}/>}
+          {section === "settlement" && <SettlementInfo merchant={displayedMerchant}/>}
+        </React.Fragment>
+      )}
+      {saving && <div className="merchant-save-status">정보를 저장하고 있습니다.</div>}
+      {error && <div className="auth-error">{error}</div>}
     </div>
   );
 };
