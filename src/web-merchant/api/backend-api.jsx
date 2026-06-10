@@ -5,6 +5,14 @@ const MERCHANT_API_BASE_URL = import.meta.env.VITE_MERCHANT_API_BASE_URL || "/ba
 const SESSION_KEY = "erumpay.merchant.session";
 const PROFILE_KEY = "erumpay.merchant.profile";
 
+// Remove tokens left by older builds that used persistent browser storage.
+try {
+  localStorage.removeItem(SESSION_KEY);
+  localStorage.removeItem(PROFILE_KEY);
+} catch {
+  // Storage may be unavailable in restricted browser contexts.
+}
+
 class ApiError extends Error {
   constructor(message, status, code, details) {
     super(message);
@@ -51,33 +59,77 @@ const request = async (baseUrl, path, options = {}) => {
 const AuthSession = {
   get: () => {
     try {
-      return JSON.parse(localStorage.getItem(SESSION_KEY)) || {};
+      return JSON.parse(sessionStorage.getItem(SESSION_KEY)) || {};
     } catch {
       return {};
     }
   },
-  set: (value) => localStorage.setItem(SESSION_KEY, JSON.stringify(value)),
+  set: (value) => sessionStorage.setItem(SESSION_KEY, JSON.stringify(value)),
   merge: (value) => AuthSession.set({ ...AuthSession.get(), ...value }),
   clear: () => {
-    localStorage.removeItem(SESSION_KEY);
-    localStorage.removeItem(PROFILE_KEY);
+    sessionStorage.removeItem(SESSION_KEY);
+    sessionStorage.removeItem(PROFILE_KEY);
   },
-  isAuthenticated: () => Boolean(AuthSession.get().accessToken),
+  isAuthenticated: () => {
+    const session = AuthSession.get();
+    return Boolean(session.accessToken && session.status === "ACTIVE");
+  },
   getProfile: () => {
     try {
-      return JSON.parse(localStorage.getItem(PROFILE_KEY));
+      return JSON.parse(sessionStorage.getItem(PROFILE_KEY));
     } catch {
       return null;
     }
   },
-  setProfile: (profile) => localStorage.setItem(PROFILE_KEY, JSON.stringify(profile)),
+  setProfile: (profile) => sessionStorage.setItem(PROFILE_KEY, JSON.stringify(profile)),
 };
-
-let refreshTokenMemory = null;
 
 const getAuthHeaders = () => {
   const { accessToken } = AuthSession.get();
   return accessToken ? { Authorization: `Bearer ${accessToken}` } : {};
+};
+
+const refreshAccessToken = async () => {
+  const { refreshToken } = AuthSession.get();
+  if (!refreshToken) {
+    throw new ApiError("로그인 세션이 만료되었습니다.", 401, "REFRESH_TOKEN_REQUIRED");
+  }
+
+  const response = await request(AUTH_API_BASE_URL, "/api/v1/auth/token/refresh", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${refreshToken}` },
+    body: JSON.stringify({ refresh_token: refreshToken }),
+  });
+  AuthSession.merge({
+    accessToken: response.access_token,
+    refreshToken: response.refresh_token || refreshToken,
+  });
+  return response.access_token;
+};
+
+const authorizedRequest = async (baseUrl, path, options = {}) => {
+  try {
+    return await request(baseUrl, path, {
+      ...options,
+      headers: { ...getAuthHeaders(), ...options.headers },
+    });
+  } catch (error) {
+    if (error.status !== 401 || !AuthSession.get().refreshToken) throw error;
+    let accessToken;
+    try {
+      accessToken = await refreshAccessToken();
+    } catch (refreshError) {
+      AuthSession.clear();
+      throw refreshError;
+    }
+    return request(baseUrl, path, {
+      ...options,
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        ...options.headers,
+      },
+    });
+  }
 };
 
 const AuthApi = {
@@ -105,11 +157,12 @@ const AuthApi = {
       merchantId: response.merchant_id,
       status: response.status,
       accessToken: response.access_token,
+      refreshToken: response.refresh_token,
       signupToken: response.signup_token,
     });
-    refreshTokenMemory = response.refresh_token || null;
     return response;
   },
+  refresh: refreshAccessToken,
   agreeTerms: async ({ serviceTermsAgreed, privacyPolicyAgreed, marketingAgreed }) => {
     const { signupToken } = AuthSession.get();
     return request(AUTH_API_BASE_URL, "/api/v1/auth/merchant/terms/agree", {
@@ -146,35 +199,36 @@ const AuthApi = {
   },
   logout: async () => {
     const session = AuthSession.get();
-    const refreshToken = refreshTokenMemory || session.refreshToken;
-    if (refreshToken) {
-      await request(AUTH_API_BASE_URL, "/api/v1/auth/merchant/logout", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${refreshToken}` },
-        body: JSON.stringify({
-          refresh_token: refreshToken,
-          access_token: session.accessToken,
-        }),
-      });
+    try {
+      if (session.refreshToken) {
+        await request(AUTH_API_BASE_URL, "/api/v1/auth/merchant/logout", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${session.refreshToken}` },
+          body: JSON.stringify({
+            refresh_token: session.refreshToken,
+            access_token: session.accessToken,
+          }),
+        });
+      }
+    } finally {
+      AuthSession.clear();
     }
-    refreshTokenMemory = null;
-    AuthSession.clear();
   },
 };
 
 const MerchantBackendApi = {
   getMerchant: async (merchantId = AuthSession.get().merchantId) => {
     if (!merchantId) return null;
-    const profile = await request(MERCHANT_API_BASE_URL, `/api/v1/pg-admin/merchants/${merchantId}`, {
-      headers: getAuthHeaders(),
-    });
+    const profile = await authorizedRequest(
+      MERCHANT_API_BASE_URL,
+      `/api/v1/pg-admin/merchants/${merchantId}`
+    );
     AuthSession.setProfile(profile);
     return profile;
   },
   updateMerchant: async (merchantId, payload) => {
-    const profile = await request(MERCHANT_API_BASE_URL, `/api/v1/pg-admin/merchants/${merchantId}`, {
+    const profile = await authorizedRequest(MERCHANT_API_BASE_URL, `/api/v1/pg-admin/merchants/${merchantId}`, {
       method: "PUT",
-      headers: getAuthHeaders(),
       body: JSON.stringify(payload),
     });
     AuthSession.setProfile(profile);
