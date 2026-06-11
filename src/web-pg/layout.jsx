@@ -2,6 +2,7 @@
 
 const NAV_MAIN = [
   { id: "dashboard",    label: "대시보드",        icon: "Dashboard" },
+  { id: "approvals",    label: "가맹점 가입 대기", icon: "Users" },
   { id: "merchants",    label: "가맹점 관리",      icon: "Store" },
   { id: "transactions", label: "결제관리",         icon: "Card" },
   { id: "settlements",  label: "정산관리",         icon: "Calc" },

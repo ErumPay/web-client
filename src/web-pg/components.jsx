@@ -4,8 +4,13 @@ const Tag = ({ kind = "neutral", dot = false, children }) => (
   <span className={`tag ${kind} ${dot ? "dot" : ""}`}>{children}</span>
 );
 
-const Button = ({ kind = "ghost", size, icon, children, onClick, type = "button" }) => (
-  <button type={type} onClick={onClick} className={`btn ${kind} ${size || ""}`.trim()}>
+const Button = ({ kind = "ghost", size, icon, children, onClick, type = "button", ...buttonProps }) => (
+  <button
+    type={type}
+    onClick={onClick}
+    className={`btn ${kind} ${size || ""}`.trim()}
+    {...buttonProps}
+  >
     {icon}
     {children}
   </button>

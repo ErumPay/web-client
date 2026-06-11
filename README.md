@@ -35,5 +35,6 @@ VITE_KAKAO_REDIRECT_URI=http://localhost:5173/
 현재 연동 범위:
 
 - `pg-auth-service`: 카카오 로그인, 약관 동의, 가맹점 가입, 로그아웃
-- `merchant-service`: 로그인 가맹점 기본정보 조회
+- `merchant-service`: 로그인 가맹점 기본정보 조회/수정
+- PG 관리자 웹: 관리자 로그인, 감사로그 조회, 가입 대기 가맹점 조회/승인
 - 매출, 거래, 정산: 대응 백엔드 API가 준비될 때까지 목 데이터 사용
