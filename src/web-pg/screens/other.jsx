@@ -91,84 +91,80 @@ const Notices = () => {
 /* ============= Audit ============= */
 const AuditLog = () => {
   const [query, setQuery] = React.useState("");
-  const [user, setUser] = React.useState("all");
-  const [result, setResult] = React.useState("all");
-  const filtered = AUDITS.filter(a =>
-    (!query || a.action.includes(query) || (a.target && a.target.includes(query))) &&
-    (user === "all" || a.user === user) &&
-    (result === "all" || a.result === result)
+  const [logs, setLogs] = React.useState([]);
+  const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState("");
+
+  React.useEffect(() => {
+    window.PgAdminApi.getAuditLogs()
+      .then(response => setLogs(response?.content || []))
+      .catch(loadError => setError(loadError.message))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const filtered = logs.filter(log =>
+    !query
+    || String(log.action ?? "").toLowerCase().includes(query.toLowerCase())
+    || String(log.target_id ?? "").toLowerCase().includes(query.toLowerCase())
+    || String(log.ip_address ?? "").toLowerCase().includes(query.toLowerCase())
   );
-  const users = ["all", ...new Set(AUDITS.map(a => a.user))];
 
   return (
     <div className="page">
       <div className="row between">
         <div className="page-header">
           <h1 className="page-title">감사 로그</h1>
-          <p className="page-desc">관리자 행위와 시스템 이벤트의 변경 이력을 추적합니다.</p>
+          <p className="page-desc">관리자 로그인, 로그아웃, 가맹점 승인 이력을 조회합니다.</p>
         </div>
         <Button kind="ghost"><Icons.Download size={14}/> 로그 다운로드</Button>
       </div>
 
       <Card flush>
         <div style={{padding: "var(--s-4) var(--s-5)", borderBottom: "1px solid var(--border)"}}>
-          <div className="filter-bar" style={{gridTemplateColumns: "180px 180px 1fr auto auto"}}>
-            <Field label="사용자">
-              <Select value={user} onChange={setUser} options={users.map(u => ({value: u, label: u === "all" ? "전체 사용자" : u}))}/>
-            </Field>
-            <Field label="처리 결과">
-              <Select value={result} onChange={setResult} options={[
-                {value: "all", label: "전체"},
-                {value: "성공", label: "성공"},
-                {value: "실패", label: "실패"},
-              ]}/>
-            </Field>
+          <div className="filter-bar" style={{gridTemplateColumns: "1fr auto auto"}}>
             <Field label="검색">
-              <SearchInput placeholder="행위, 대상, IP 등" value={query} onChange={setQuery}/>
+              <SearchInput placeholder="행위, 대상 ID, IP" value={query} onChange={setQuery}/>
             </Field>
             <div style={{display: "flex", gap: 8, alignItems: "end"}}>
               <Button kind="primary"><Icons.Search size={14}/> 검색</Button>
-              <Button kind="ghost" onClick={() => { setQuery(""); setUser("all"); setResult("all"); }}>초기화</Button>
+              <Button kind="ghost" onClick={() => setQuery("")}>초기화</Button>
             </div>
-            <div></div>
           </div>
         </div>
 
+        {error && <div className="pg-api-error">{error}</div>}
         <div className="table-wrap">
           <table className="tbl">
             <thead>
               <tr>
                 <th style={{width: 170}}>발생 시각</th>
-                <th style={{width: 110}}>사용자</th>
-                <th style={{width: 100}}>역할</th>
+                <th style={{width: 110}}>관리자 ID</th>
                 <th>행위</th>
                 <th>대상</th>
                 <th style={{width: 130}}>IP</th>
-                <th className="center" style={{width: 80}}>결과</th>
+                <th>변경 내용</th>
               </tr>
             </thead>
             <tbody>
-              {filtered.map((a, i) => (
-                <tr key={i}>
-                  <td className="num t-tertiary">{a.ts}</td>
-                  <td style={{fontWeight: 600}}>{a.user}</td>
-                  <td>{a.role}</td>
-                  <td>{a.action}</td>
-                  <td className="mono t-tertiary">{a.target}</td>
-                  <td className="mono num">{a.ip}</td>
-                  <td className="center">
-                    {a.result === "성공"
-                      ? <Tag kind="success" dot>성공</Tag>
-                      : <Tag kind="danger" dot>실패</Tag>}
-                  </td>
+              {loading && <tr><td colSpan="6" className="center">감사로그를 불러오는 중입니다.</td></tr>}
+              {!loading && filtered.length === 0 && (
+                <tr><td colSpan="6" className="center">조회된 감사로그가 없습니다.</td></tr>
+              )}
+              {!loading && filtered.map(log => (
+                <tr key={log.log_id}>
+                  <td className="num t-tertiary">{log.created_at?.replace("T", " ").slice(0, 19)}</td>
+                  <td style={{fontWeight: 600}}>{log.admin_id}</td>
+                  <td>{log.action}</td>
+                  <td className="mono t-tertiary">{log.target_id || "-"}</td>
+                  <td className="mono num">{log.ip_address}</td>
+                  <td className="mono t-tertiary">{log.change_detail || "-"}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
         <div className="row between" style={{padding: "var(--s-4) var(--s-5)"}}>
-          <div className="text t-tertiary">총 {filtered.length}건 (최근 12건 표시)</div>
-          <Pager page={1} total={48} onChange={()=>{}}/>
+          <div className="text t-tertiary">총 {filtered.length}건</div>
         </div>
       </Card>
     </div>
@@ -477,9 +473,25 @@ const DesignSystem = () => {
 
 /* ============= Login ============= */
 const Login = ({ onLogin }) => {
-  const [email, setEmail] = React.useState("kim@erumpay.kr");
-  const [password, setPassword] = React.useState("••••••••");
-  const [remember, setRemember] = React.useState(true);
+  const [loginId, setLoginId] = React.useState("");
+  const [password, setPassword] = React.useState("");
+  const [totpCode, setTotpCode] = React.useState("");
+  const [loading, setLoading] = React.useState(false);
+  const [error, setError] = React.useState("");
+
+  const submit = async event => {
+    event.preventDefault();
+    setLoading(true);
+    setError("");
+    try {
+      await onLogin({ loginId, password, totpCode });
+    } catch (loginError) {
+      setError(loginError.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="login-shell">
       <div className="login-art">
@@ -493,29 +505,35 @@ const Login = ({ onLogin }) => {
         </div>
         <div className="text" style={{opacity: 0.8}}>© 2024 ErumPay. All rights reserved.</div>
       </div>
-      <div className="login-card">
+      <form className="login-card" onSubmit={submit}>
         <div>
           <h2 className="h2">로그인</h2>
-          <p className="text t-tertiary" style={{marginTop: 4}}>슈퍼바이저 계정으로 로그인하세요.</p>
+          <p className="text t-tertiary" style={{marginTop: 4}}>PG 관리자 계정과 OTP로 로그인하세요.</p>
         </div>
-        <Field label="이메일">
-          <input className="input" value={email} onChange={e=>setEmail(e.target.value)}/>
+        <Field label="관리자 ID">
+          <input className="input" value={loginId} onChange={e=>setLoginId(e.target.value)} required/>
         </Field>
         <Field label="비밀번호">
-          <input className="input" type="password" value={password} onChange={e=>setPassword(e.target.value)}/>
+          <input className="input" type="password" value={password} onChange={e=>setPassword(e.target.value)} required/>
         </Field>
-        <div className="row between">
-          <label className="row" style={{gap: 8, fontSize: 13, cursor: "pointer"}}>
-            <input type="checkbox" checked={remember} onChange={e=>setRemember(e.target.checked)}/>
-            <span>아이디 저장</span>
-          </label>
-          <a style={{fontSize: 13, color: "var(--c-secondary)"}}>비밀번호 찾기</a>
-        </div>
-        <Button kind="primary" size="lg" onClick={onLogin}>로그인</Button>
+        <Field label="OTP 인증번호 (운영 환경)">
+          <input
+            className="input"
+            inputMode="numeric"
+            maxLength="6"
+            placeholder="6자리 OTP"
+            value={totpCode}
+            onChange={event => setTotpCode(event.target.value.replace(/\D/g, ""))}
+          />
+        </Field>
+        {error && <div className="pg-api-error">{error}</div>}
+        <button className="btn primary lg" type="submit" disabled={loading}>
+          {loading ? "로그인 중..." : "로그인"}
+        </button>
         <div className="text t-tertiary" style={{textAlign: "center"}}>
           5회 이상 로그인 실패 시 계정이 일시 잠금됩니다.
         </div>
-      </div>
+      </form>
     </div>
   );
 };

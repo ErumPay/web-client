@@ -2,6 +2,7 @@
 
 const ROUTES = {
   dashboard:    { title: "대시보드",          crumbs: ["대시보드"] },
+  approvals:    { title: "가맹점 가입 대기", crumbs: ["가맹점 가입 대기"] },
   merchants:    { title: "가맹점 관리",        crumbs: ["가맹점 관리"] },
   transactions: { title: "결제관리",           crumbs: ["결제관리"] },
   settlements:  { title: "정산관리",           crumbs: ["정산관리"] },
@@ -15,7 +16,7 @@ const ROUTES = {
 const App = () => {
   const [page, setPage] = React.useState("dashboard");
   const [collapsed, setCollapsed] = React.useState(false);
-  const [authed, setAuthed] = React.useState(true);
+  const [authed, setAuthed] = React.useState(() => window.PgSession.isAuthenticated());
   const [merchant, setMerchant] = React.useState(null);
   const [tx, setTx] = React.useState(null);
 
@@ -30,15 +31,29 @@ const App = () => {
     return () => window.removeEventListener("hashchange", onHash);
   }, []);
 
-  const nav = (id) => {
-    if (id === "login") { setAuthed(false); window.location.hash = "login"; return; }
+  const nav = async (id) => {
+    if (id === "login") {
+      try {
+        await window.PgAdminApi.logout();
+      } catch (error) {
+        console.error("PG logout failed", error);
+      }
+      setAuthed(false);
+      window.location.hash = "login";
+      return;
+    }
     setPage(id);
     setMerchant(null); setTx(null);
     window.location.hash = id;
   };
 
   if (!authed) {
-    return <Login onLogin={() => { setAuthed(true); window.location.hash = "dashboard"; }}/>;
+    return <Login onLogin={async form => {
+      await window.PgAdminApi.login(form);
+      setAuthed(true);
+      setPage("approvals");
+      window.location.hash = "approvals";
+    }}/>;
   }
 
   const route = ROUTES[page] || ROUTES.dashboard;
@@ -55,6 +70,7 @@ const App = () => {
           unread={3}
         />
         {page === "dashboard"    && <Dashboard onOpenMerchant={setMerchant}/>}
+        {page === "approvals"    && <MerchantApprovals/>}
         {page === "merchants"    && <Merchants onOpen={setMerchant}/>}
         {page === "transactions" && <Transactions onOpen={setTx}/>}
         {page === "settlements"  && <Settlements/>}
