@@ -107,21 +107,38 @@ const refreshAccessToken = async () => {
   return response.access_token;
 };
 
+let refreshPromise = null;
+
+const getRefreshedAccessToken = () => {
+  if (!refreshPromise) {
+    refreshPromise = refreshAccessToken()
+      .catch(error => {
+        AuthSession.clear();
+        throw error;
+      })
+      .finally(() => {
+        refreshPromise = null;
+      });
+  }
+  return refreshPromise;
+};
+
 const authorizedRequest = async (baseUrl, path, options = {}) => {
+  const accessTokenAtRequest = AuthSession.get().accessToken;
   try {
     return await request(baseUrl, path, {
       ...options,
       headers: { ...getAuthHeaders(), ...options.headers },
     });
   } catch (error) {
-    if (error.status !== 401 || !AuthSession.get().refreshToken) throw error;
-    let accessToken;
-    try {
-      accessToken = await refreshAccessToken();
-    } catch (refreshError) {
-      AuthSession.clear();
-      throw refreshError;
+    const currentSession = AuthSession.get();
+    if (error.status !== 401 || !currentSession.refreshToken) throw error;
+
+    let accessToken = currentSession.accessToken;
+    if (!accessToken || accessToken === accessTokenAtRequest) {
+      accessToken = await getRefreshedAccessToken();
     }
+
     return request(baseUrl, path, {
       ...options,
       headers: {

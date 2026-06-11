@@ -3,6 +3,7 @@
 const MerchantApprovals = () => {
   const [merchants, setMerchants] = React.useState([]);
   const [query, setQuery] = React.useState("");
+  const [applicationDate, setApplicationDate] = React.useState("");
   const [loading, setLoading] = React.useState(true);
   const [approvingId, setApprovingId] = React.useState(null);
   const [error, setError] = React.useState("");
@@ -25,13 +26,15 @@ const MerchantApprovals = () => {
 
   const filtered = merchants.filter(merchant => {
     const keyword = query.trim().toLowerCase();
-    if (!keyword) return true;
-    return [
+    const matchesDate = !applicationDate
+      || merchant.createdAt?.slice(0, 10) === applicationDate;
+    const matchesKeyword = !keyword || [
       merchant.merchantName,
       merchant.businessNumber,
       merchant.ownerName,
       merchant.contactPhone,
     ].some(value => String(value || "").toLowerCase().includes(keyword));
+    return matchesDate && matchesKeyword;
   });
 
   const approve = async merchant => {
@@ -60,7 +63,12 @@ const MerchantApprovals = () => {
       <Card>
         <div className="approval-filter">
           <Field label="신청일 조회">
-            <input className="input" type="date"/>
+            <input
+              className="input"
+              type="date"
+              value={applicationDate}
+              onChange={event => setApplicationDate(event.target.value)}
+            />
           </Field>
           <Field label="상태">
             <select className="select" value="PENDING" disabled>
@@ -75,7 +83,15 @@ const MerchantApprovals = () => {
             />
           </Field>
           <Button kind="primary" onClick={load}>검색</Button>
-          <Button kind="ghost" onClick={() => setQuery("")}>초기화</Button>
+          <Button
+            kind="ghost"
+            onClick={() => {
+              setApplicationDate("");
+              setQuery("");
+            }}
+          >
+            초기화
+          </Button>
         </div>
       </Card>
 

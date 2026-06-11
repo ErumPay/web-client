@@ -104,9 +104,9 @@ const AuditLog = () => {
 
   const filtered = logs.filter(log =>
     !query
-    || log.action?.toLowerCase().includes(query.toLowerCase())
-    || log.target_id?.toLowerCase().includes(query.toLowerCase())
-    || log.ip_address?.toLowerCase().includes(query.toLowerCase())
+    || String(log.action ?? "").toLowerCase().includes(query.toLowerCase())
+    || String(log.target_id ?? "").toLowerCase().includes(query.toLowerCase())
+    || String(log.ip_address ?? "").toLowerCase().includes(query.toLowerCase())
   );
 
   return (

@@ -92,12 +92,25 @@ const PgAdminApi = {
     }
   },
   getPendingMerchants: async () => {
-    const response = await pgRequest(
-      PG_MERCHANT_API_BASE_URL,
-      "/api/v1/pg-admin/merchants?page=0&size=100&sort=createdAt,desc",
-      { headers: PgSession.authHeaders() }
-    );
-    return (response?.content || []).filter(merchant => merchant.status === "PENDING");
+    const size = 100;
+    const pendingMerchants = [];
+    let page = 0;
+    let totalPages = 1;
+
+    do {
+      const response = await pgRequest(
+        PG_MERCHANT_API_BASE_URL,
+        `/api/v1/pg-admin/merchants?page=${page}&size=${size}&sort=createdAt,desc`,
+        { headers: PgSession.authHeaders() }
+      );
+      pendingMerchants.push(
+        ...(response?.content || []).filter(merchant => merchant.status === "PENDING")
+      );
+      totalPages = response?.totalPages || 0;
+      page += 1;
+    } while (page < totalPages);
+
+    return pendingMerchants;
   },
   approveMerchant: merchantId => pgRequest(
     PG_AUTH_API_BASE_URL,
