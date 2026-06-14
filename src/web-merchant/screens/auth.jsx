@@ -186,6 +186,7 @@ const SignupInfo = ({ onPrev, onSubmit }) => {
     serviceName: "",
     businessAddress: "",
     businessAddressDetail: "",
+    businessRegistrationFile: null,
   });
   const [submitting, setSubmitting] = React.useState(false);
   const [error, setError] = React.useState("");
@@ -206,7 +207,12 @@ const SignupInfo = ({ onPrev, onSubmit }) => {
             <AuthInput name="representativeName" value={form.representativeName} onChange={update} label="대표자명" placeholder="대표자 이름을 입력하세요"/>
             <AuthInput name="mccCode" value={form.mccCode} onChange={update} label="MCC 코드" placeholder="숫자 4자리"/>
             <AuthInput name="serviceName" value={form.serviceName} onChange={update} label="서비스명" placeholder="가맹점 서비스명을 입력하세요"/>
-            <AuthUpload label="사업자등록증 첨부" wide/>
+            <AuthUpload
+              label="사업자등록증 첨부"
+              file={form.businessRegistrationFile}
+              onChange={file => update("businessRegistrationFile", file)}
+              wide
+            />
           </FormSection>
 
           <FormSection title="담당자 정보">
@@ -271,16 +277,54 @@ const AuthInput = ({ name, value, onChange, label, placeholder, type = "text", w
   </label>
 );
 
-const AuthUpload = ({ label, wide }) => (
-  <div className={`auth-field ${wide ? "wide" : ""}`}>
-    <span>{label}<em>*</em></span>
-    <div className="upload-box">
-      <Icons.Download size={20}/>
-      <strong>클릭하여 파일 업로드</strong>
-      <small>JPG, PNG, PDF 파일만 가능</small>
+const AuthUpload = ({ label, file, onChange, wide }) => {
+  const inputId = React.useId();
+  const [error, setError] = React.useState("");
+  const maxSize = 10 * 1024 * 1024;
+  const allowedTypes = ["image/jpeg", "image/png", "application/pdf"];
+
+  const selectFile = event => {
+    const selectedFile = event.target.files?.[0] || null;
+    setError("");
+
+    if (!selectedFile) return;
+    if (!allowedTypes.includes(selectedFile.type)) {
+      setError("JPG, PNG, PDF 파일만 선택할 수 있습니다.");
+      event.target.value = "";
+      return;
+    }
+    if (selectedFile.size > maxSize) {
+      setError("파일 크기는 최대 10MB까지 가능합니다.");
+      event.target.value = "";
+      return;
+    }
+
+    onChange(selectedFile);
+  };
+
+  return (
+    <div className={`auth-field ${wide ? "wide" : ""}`}>
+      <span>{label}<em>*</em></span>
+      <input
+        id={inputId}
+        className="upload-input"
+        type="file"
+        accept=".jpg,.jpeg,.png,.pdf,image/jpeg,image/png,application/pdf"
+        onChange={selectFile}
+      />
+      <label className={`upload-box ${file ? "selected" : ""}`} htmlFor={inputId}>
+        <Icons.Download size={20}/>
+        <strong>{file ? file.name : "클릭하여 파일 업로드"}</strong>
+        <small>
+          {file
+            ? `${(file.size / 1024 / 1024).toFixed(2)}MB · 다른 파일을 선택하려면 클릭하세요`
+            : "JPG, PNG, PDF (최대 10MB)"}
+        </small>
+      </label>
+      {error && <small className="upload-error">{error}</small>}
     </div>
-  </div>
-);
+  );
+};
 
 const ReviewComplete = ({ onEnterMain, onCheckReview = onEnterMain }) => (
   <div className="merchant-auth-shell">
