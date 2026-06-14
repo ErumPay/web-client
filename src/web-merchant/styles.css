@@ -1883,16 +1883,48 @@ table.tbl {
   background: #FBFCFD;
   color: var(--text-secondary);
   text-align: center;
+  cursor: pointer;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.upload-box:hover,
+.upload-box:focus-within {
+  border-color: var(--c-main);
+  background: #F2FBF8;
+}
+
+.upload-box.selected {
+  border-color: var(--c-main);
+  background: #F2FBF8;
+  color: var(--c-main);
 }
 
 .upload-box strong {
   color: var(--text-secondary);
   font-size: 12px;
+  overflow-wrap: anywhere;
 }
 
 .upload-box small {
   font-size: 10px;
   color: var(--text-tertiary);
+}
+
+.upload-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.upload-error {
+  color: var(--c-danger);
+  font-size: 10px;
 }
 
 .review-complete-copy {
